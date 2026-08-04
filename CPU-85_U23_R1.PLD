@@ -1,0 +1,60 @@
+Name     CPU-85_U23 ;
+PartNo   U23 ;
+Date     7/17/2026 ;
+Revision 01 ;
+Designer Greg Bober ;
+Company  Michigan Electronic Applications LLC ;
+Assembly for CPU85 U23;
+Location  ;
+Device   g16v8a ;
+
+/*
+* Change History
+* 7/16/2026 First Draft
+*/
+
+/*
+ * devices:  g16v8 g16v8a  ATF16V8B  ATF16V8C 
+ */
+
+/*
+ * INPUTS:  define to build simple gates from
+ */
+PIN   1  = S0       ;   
+PIN   2  = S1       ; 
+PIN   3  = IOM      ;         
+PIN   4  = invertedINTA    ;
+PIN   5  = invertedRESET   ;
+PIN   6  = invertedWR      ;
+PIN   7  = invertedRD      ;
+PIN   8  = ATNIs    ;
+PIN   9  = SDSB    ;
+PIN  11  = ZERO    ;
+
+
+/*
+ * OUTPUTS:  define to build simple gates from
+ * use 74HCT240 to invert or 74HCT244 to buffer
+ */
+
+PIN  19  = sINTA     ; 
+PIN  18  = sINP      ;
+PIN  17  = sOUT      ;
+PIN  16  = sHLTA     ; 
+PIN  15  = sM1       ;
+PIN  14  = sMEMR     ;
+PIN  13  = invertedsWO ;
+PIN  12  = sBI       ;
+
+/*
+ = (S0 & S1 & IOM & invertedINTA & invertedRESET & invertedWR & invertedRD & !SDSB )
+ */
+sINTA = ( S0 & S1 & IOM & !invertedINTA & invertedRESET & invertedWR & invertedRD & !SDSB ) ;
+sINP = ( !S0 & S1 & IOM & invertedINTA & invertedRESET & !SDSB ) ;
+sOUT = ( S0 & !S1 & invertedINTA & IOM & invertedRESET & !SDSB )     ;
+sM1 = ( S0 & S1 & !SDSB &invertedRESET ) ;
+sHLTA = ( ! S0 & !S1 & IOM & invertedINTA & invertedRESET & invertedWR & invertedRD & !SDSB ) ;
+sWO = !( S0 & !S1 & invertedINTA & invertedRESET & !SDSB )     ;
+sBI = ( S0 & S1 & IOM & invertedINTA & invertedRESET & !SDSB ) ;
+sMEMR  = ! ( sWO & !sOUT & !sINP & invertedINTA & invertedRESET & !ATNIs & !SDSB ) ;
+
