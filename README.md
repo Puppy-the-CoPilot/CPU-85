@@ -44,7 +44,7 @@ Bill Of Material:  Completed 18 July 2026
 
 PCB Status: first blank check samples are being made in July 2026
 
-First Validation Sample: yet to be made in August 2026
+First Validation Sample: In Progress as of 4 August 2026
 
 Planned Validation:
      * test in IMSAI non Front Panel IMSAI PCS 80/30 
