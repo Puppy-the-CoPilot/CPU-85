@@ -1,0 +1,594 @@
+0000               0000 *************************************************************
+0000               0010 *                                                           *
+0000               0020 *   TEST PROGRAM FOR CPU-85 WITH 80C85B                     *
+0000               0030 *                                                           *
+0000               0040 *   SPECIFIC USE  : IMSAI PCS80/30 WITH CPU~85 PCB          *
+0000               0050 *   UPDATE HISTORY: 8/10/2026 FIRST DRAFT                   *
+0000               0060 *                   8/11/2026 FLOPPY CRASHED,  SECOND DRAFT *
+0000               0066 *   WRITTEN       : BY GREG BOBE                            *
+0000               0067 *                   GREGLORI_MI@WOWWAY.COM                  *
+0000               0070 *                                                           *
+0000               0080 *************************************************************
+0000               0090                  LINK     'SYSNOV2025'
+0000               0100 *************************************************************
+0000               0110 *   PROGRAM INDEX TABLE                                     *
+0000               0120 *************************************************************
+0000      E000     0130 PROGSTART        EQU	0E000H		; COULD BE ANY WHERE
+0000      019D     0140 BOOTLOADER~STACK EQU	0019DH          ; USE MICROPOLIS DOS STACK AREA
+0000      F7E5     0150 BOOTLOADER~STACK~ALT EQU 0F7ES5H        ; USE VIDE0 RAM FOR STAK AREA
+0000      0000     0160 RUNREMOTE~PROGRAM EQU 0000H             ; PLACE IN LOW MDOS STACK RANGE
+0000               0170 *
+0000               0180			 ORG      PROGSTART
+E000               0190 *************************************************************
+E000               0200 *   POWER ON RESET AND SUBROUTINE REMAPPING TABLE           *
+E000               0210 *************************************************************
+E000 C3 D7  El     0220 RESET           JMP      COLD~START
+E003 C3 42  E2     0230 RAM~TEST~RETURN~POINT JMP RAM~TEST~COMPLETED
+E006               0240 *
+E006               0250 *************************************************************
+E006               0260 *   TEXT STRINGS                                            *
+E006               0270 *************************************************************
+E006 21 5C E0      0280 NEXT~LINE	LXI 	H,CCRTL~MESS
+E009 C3 B6 FF      0290                 JMP     IMSATF~VIOB~DISPLAY~STRING
+E00C               0300 *
+E00C 43 50 55      0310 GREETINGS~PROMPT DT     'CPU-85 BOARD TEST AND BOOTLOADER V.1 8/11/2026'
+E00F 2D 38 35
+E012 20 42 4F
+E015 41 52 44
+E018 20 54 45
+E01B 53 54 20
+E01E 41 4E 44
+E021 20 42 4F
+E024 4F 54 20
+E027 4C 4F 41
+E02A 44 45 52
+E02D 20 56 2E
+E030 31 20 38
+E033 2F 31 31
+E036 2F 32 30
+E039 32 36
+E03B 0D 0A 0A     0320			DB        0DH,0AH,0AH
+E03E 20 20 20     0330 RAM~TEST~MESS    DTZ       '   47 BYTES OF RAM AVAILABLE '
+E041 34 37 20
+E044 42 59 54
+E047 45 53 20
+E04A 4F 46 20
+E04D 52 41 4D
+E050 20 41 56
+E053 41 49 4C
+E056 41 42 4C
+E059 45 20 00
+E05C 0D 0A 00     0340 CCRLF~MESS      DB        0DH,0AH,0
+E0SF 4E 4F 20     0350 RAM~FAIL~MESS   DTZ       'NO MAIN PROGRAM OR DEFECTIVE MEMORY DETECTED AT 0000H"
+E062 4D 41 49
+E065 4E 20 50
+E068 52 4F 47
+E06B 52 41 4D
+E06E 20 4F 52                                                                                                      .
+E071 20 44 45
+eO74 46 45 43
+E077 54 49 56
+E07A 45 20 4D
+E07D 45 4D 4F
+E080 52 59 20
+E083 44 45 54
+E086 45 43 54
+E089 45 44 20
+E08C 41 54 20
+E08F 30 30 30
+E092 30 48 00
+E095 20 2E 2E     0360 NOT~ENOUGH~MESS DTZ     '  ...  NOT ENOUGH RAM, 20K MINIMUM REQIRED, CPU HALTED '
+E098 2E 20 4E
+E09B 4F 54 20                                                                                     .
+E09E 45 4E 4F
+E0A1 55 47 48
+E0A4 20 52 41                                                                                                           :
+E0A7 4D 2C 20
+E0AA 32 30 4B
+E0AD 20 4D 49
+E0BO 4E 49 4D
+E0B2 55 4D 20
+E0B6 52 45 51
+E0B9 55 49 52
+E0BC 45 44 2C
+E0BF 20 43 50
+E0C2 55 20 48
+E0C5 41 4C 54
+E0C8 45 44 20
+E0CB 00
+E0CC 56 49 4F     0370 VIOB~MESS          DTZ       'VIOB EPROM CHECKSUM =  '
+E0CF 42 20 45
+E0D2 50 52 4F
+E0D5 4D 20 43
+E0D8 48 45 43
+E0DB 4B 53 55
+E0DE 4D 20 3D                                                           
+E0E1 20 00
+E0E3 46 4C 4F     0380 DISK~MESS          DTZ       'FLOPPY DISK ROM CHECKSUM = '
+E0E6 50 50 59
+E0E9 20 44 49
+E0EC 53 4B 20
+E0EF 52 4F 4D
+E0F2 20 43 48
+E0F5 45 43 4B
+E0F8 53 55 4D
+E0FB 20 3D 20
+E0FE 00
+E0FF 50 41 52     0390 PRINT~MESS        DTZ       'PARALLEL PRINTER PORT & KODAK 150 PLUS INITIALIZED '
+E102 41 4C 4C
+E105 45 4C 20
+E108 50 52 49
+E10B 4E 54 45
+E10E 52 20 50                                                                                                      :
+E111 4F 52 54
+E114 20 26 20
+E117 4B 4F 44
+E11A 41 4B 20
+E11D 31 35 30
+E120 50 4C 55
+E123 53 20 49
+E126 4E 49 54
+E129 49 41 4C
+E12C 49 5A 45
+E12F 44 20 00
+E132 50 52 49     0400 PRINT~PTEST      DTZ       'PRINT A TEST PAGE’
+E135 4E 54 20
+E138 41 20 54
+E13B 45 53 54
+E13E 20 50 41
+E141 47 45 00                                                                                     :
+E144 4D 59 20     0410 PRINT~TEST~MESS  DT       'MY PUPPY IS A GOOD DOG’
+E147 50 55 50
+E14A 50 59 20
+E14D 49 53 20
+E150 41 20 47
+E153 4F 4F 44
+E156 20 44 4F
+E159 47
+E15A 0D 0A 80     0420                  DB        0DH,0AH,080H
+E15D 2C 20 50     0430 RESULT~PASS      DTZ       ',  PASS’
+E160 41 53  53
+E163 00
+E164 2C 20 46     0440 RESULT~FAIL      DTZ       ',  FAIL'
+E167 41 49 4C
+E16A 00
+E16B 52  55 4E    0450 RUN~FROM~RAM~TEST DTZ      'RUN "NOP" PROGRAM FROM AVAILABLE MAIN RAM '
+E16E 20 22  4E
+E171 4F 50 22                             
+E174 20 50 52
+E177 4F 47 52                                                                
+E17A 41 4D 20                                                          
+EL7D 46 52 4F
+E180 4D 20 41
+E183 56 41 49
+E186 4C 41 42
+E189 4C 45 20
+E18C 4D 41 49
+E18F 4B 20 52
+E192 41 4D 20
+E195 00
+E196 42 4F AF     0460 DISK~BOOT~MESS DTZ        'BOOTING FROM FLOPPY DISK 0 '
+E199 54 49 4E
+E19C 47 20 46
+E19F 52 4F 4D
+E1A2 20 46 4C
+E1A5 4F 50 50
+E1A8 59 20 44
+E1AB 49 53 4B
+E1AE 20 30 20
+E1B1 00                                                                                           
+EiB2              0470 *************************************************************
+E1B2              0480 *  DELAYS
+EiB2 21 87 00     0490 WAIT~1IMS        LXT      H,ONE"MILLISECOND  ; 1.004MS WITH 4MHZ 8085 CPU
+E1B5 2B           0500 WATIT~1MS~LOOP   DCX      H
+E1B6 7D           0510                  MOV      A,L
+E1B7 B4           0520                  ORA      H
+E1B8 C2 B5 B1     0530                  JNZ      WAIT~1MS~LOOP
+E1BB C9           0540                  RET
+EiBC CD C8 E1     0550 WAIT~5SECONDS    CALL     WAIT~1SECOND
+EiBF CD C8 E1     0560                  CALL     WAIT~1SECOND
+E1C2 CD C8 Ei     0570                  CALL     WAIT 1SECOND
+E1C5 CD C8 E1     0580                  CALL     WAIT~1SECOND
+EiC8 11 E8 03     0590 WAIT~1SECOND     LXT      D,1000D
+E1CB CD B2 Ei     0600 WAIT~MS          CALL     WAIT~1MS                     .
+E1CE 1B           0610                  DCX      D
+E1CF 7A           0620                  MOV      A,D
+E1D0 B3           0630                  ORA      E
+EiD1 C2 CB E1     0640                  JNZ      WAIT~MS            ; LOOP AGAIN?
+E1D4 C3 41 E3     0650                  JMP      DISPLAY~TIME~NOW   ; UPDATE HH:MM:SS ON SCREEN
+E1D7              0660 *
+EiD7              0670 *************************************************************
+E1D7              0680 *   TEST HW AT SYSTEM RESET & BOOT DISK                     *
+E1D7              0690 *************************************************************
+E1D7 31 E5 F7     0700 COLD~START       LXT      SP,BOOTLOADER~STACK~ALT  ; SET STACK POINTER
+E1DA F3           0710                  DI
+E1DB              0720 *
+E1DB              0730 *                            
+E1DB              0740 * PERFORM HARDWARE HEALTH CHECKS THEN BOOT FROM DISK
+E1DB              0750 *
+E1DB              0760 *
+EiDB CD 00 F8     0770                  CALL     IMSAI~VIOB~INIT~24X80  ; ERASE VIDE0 8CREEN
+EiDE 21 0C E0     0780                  LXT      H,GREETINGS~PROMPT     ; PRESENT GREETING MESSAGE
+E1E1 CD B6 FF     0790                  CALL     IMSAI~VIOB~DISPLAY~STRING
+E1E4 CD 41 E3     0800                  CALL     DISPLAY~TIME~NOW
+E1E7              0810 *
+E1E7              0820 * MOVE RAM TEST PROGRAM TO REMOTE RAM ADDRESS
+E1E7              0830 *
+E1E7 0E 2F        0840                  MVI      C, RAMTTEST~CODE~LENGTH
+E1E9 21 13 E2     0850                  LXI      H, RAMTTEST~START      ; POINT AT TEMPLATE OUTINE
+E1EC 11 00 00     0860                  LXI      D, RUN"REMOTE~FROGRAM
+E1EF              0870 * TRANSFER THE TEMPLATE PROGRAM TO REMOTE LOCATED RAM
+E1EF 7E           0880 TRANSFER~PROGRAM~LOOP MOV A,M            ;  MOVE (HL) TO (DE)
+E1F0 12           0890                  STAX     D
+E1F1 23           0900                  INX      H                      ; NEXT LOCATION
+E1F2 13           0910                  INX      D
+E1F3 0D           0920                  DCR      C                      ; DONE YET?
+E1F4 C2 EF El     0930                  JNZ      TRANSFER~PROGRAM~LOOP  ; DONE WHEN C=0
+E1F7              0940 * WAS RAM TEST LOADED INTO RAM SUCCESSFULY?
+E1F7 21 0C 00     0950                  LXT      H,0
+ELFA 01 2F 00     0960                  LXI      B, RAM~TEST~CODE~LENGTH
+E1FD CD CC E2     0970                  CALL     PROCESS~CHECKSUM  ; CHECK TEST PROGAM
+E200              0980 *  CALL DISPLAY~CHECKSUM  ;  USE TO LEARN THE RAM CHECKSUM
+E200              0990 *  HLT
+E200              1000 *                                                                      .
+E200 7A           1010                   MOV      A,D                  ; IS RAM PROGRAM CHECKSUM OK?00
+E201 FE 11        1020                   CPI      011H
+E203 C2 0C E2     1030                   JNZ      NO~RAM~FOUND
+E206 7B           1040                   MOV      A,E
+E207 FE 17        1050                   CPI      017H
+E209 CA 00 00     1060                   JZ       RUN~REMOTE~PROGRAM  ; OK TEST RAM
+E20C 21 SF E0     1070 NO~RAM~FOUND      LXI      H,RAM~FAIL~MESS
+E20F CD B6 FF     1080                   CALL     IMSAI~VIOB~DISPLAY~ STRING
+E212 76           1090                   HLT
+E213              1100 *
+E213              1110 *
+E213              1120 * SPECIAL SOFTWARE THAT GETS RELOCATED BY THE HARDWARE TEST PROGAM
+E213              1130 *
+E213              1140 *
+E213              1150 * TEST RAM FROM A REMOTE RAM ADDRESS SEPARATE FROM MAIN RAM
+E213 21 2E 00     1160 RAM~TEST~START    LXI      H,RAMTTEST~CODE~LENGTH-1  ; START CHECKING
+E216 01 3A 30     1170                   LXI      B,0303AH              ;  SAVE TIME WITH VALUES IN REG.BC
+E219     1DED     1180 RELOCATION~OFFSET EQU RUN~REMOTE~PROGRAM-RAM~TEST~START
+E219 7E           1190 RAM~TEST~LOOP     MOV      A,M
+E21A 2F           1200                   CMA                            ; INVERT THEMEMORY VALUE
+E21B 77           1210                   MOV      M,A                   ; STORE TEST VALUE
+E21C BE           1220                   CMP      M                     ; WAS VALUE SUCCESS FULL SAVED?
+E21D C2 2B 00     1230                   JNZ      BAD~RAM~FOUND+RELOCATION~OFFSET
+E220 2F           1240                   CMA                            ; INVERT VALUE TO ORIGINAL VALUE                                                                                                              ;
+E221 77           1250                   MOV      M,A                   ; RESTORE TEST VALUE
+E222 BE           1260                   CMP      M                     ; WAS VALUE RESTORED?
+E223 C2 2B 00     1270                   JNZ      BAD~RAM~FOUND+RELOCATION~OFFSET
+E226 23           1280                   INX      H                     ; CHECK NEXT MEMORY LOCATION
+E227              1290 *
+E227 11 A4 F0     1300                   LXI      D,2*80+IMSAI~VIOB~RAM+4  ; DISPLAYED RAM COUNTER
+E22A 1A           1310 COUNT~GOOD~RAM    LDAX     D                     ; INCREASE COUNTER DIGIT
+E22B B0           1320                   ORA      B                     ; APPLY ASCII MASK IF NEW DIGIT
+E22C 3C           1330                   INR      A                     ; INCREASE BY 1 AND SAVE IT
+E22D 12           1340                   STAX     D                     ; CHECK FOR DIGIT ROLLOVER
+E22E B9           1350                   CMP      C                     ; RIPPLE UP TO NEXT DIGIT IF 3AH
+E22F C2 25 00     1360                   JNZ      RAM~COUNTER~DONE+RELOCATION~OFFSET
+E232 78           1370                   MOV      A,B                   ; RESET THAT DIGIT
+E233 12           1380                   STAX     D
+E234 1B           1390                   DCX      D                     ; INCREASE THE NEXT DIGIT UP   
+E235 C3 17 00     1400                   JMP      COUNT~GOOD~RAM+RELOCATION~OFFSET
+E238 7C           1410 RAM~COUNTER~DONE  MOV      A,H                   ; END WHEN HL=0E000H
+E239 FE E0        1420                   CPI      0E0H                  ; START FOR FLOPPY DISKROM IS MAXIMUM
+E23B C2 06 00     1430                   JNZ      RAM~TEST~LOOP+RELOCATION~OFFSET
+E23E C3 03 E0     1440 BAD~RAM~FOUND     JMP      RAM~TEST~RETURN~POINT ; TEST COMPLETE
+E241 76           1450 RAM~TEST~END      HLT
+E242       002F   1460 RAM~TEST~CODE~LENGTH EQU RAM~TEST~END~RAM~TEST~START+1
+E242 CD 06 E0     1470 RAM~TEST~COMPLETED CALL    NEXT~LINE
+E245 3A A0 F0     1480                   LDA      80D*2+IMSAI~VIOB~RAM  ; IS MSD >20K RAM
+E248 C6 CF        1490                   ADT     -'1'                   ; IS IT GREATER THAN 20, THEN OK
+E24A DA 54 E2     1500                   JC      VIOB~CHK~SUM           ; OK PROCEED TO NEXT TEST
+E24D 21 95 E0     1510                   LXI     H,NOT~ENOUGH~MESS      ; NOT ENOUGH RAM BPCE, STOP CPU
+E250 CD B6 FF     1520                   CALL    IMSAI~VIOR~DISPLAY~STRING
+E253 76           1530                   HLT                            ; STOP GO NO FURTHER
+E254              1540 *
+E254              1550 *
+E254              1560 * CHECK SUM TEST ON VIOB EPROM
+E254              1570 *
+E254		  1580 *
+E254 21 CC E0     1590 VIOB~CHK~SUM       LXI     H,VIOB~MESS
+E257 CD B6 FF     1600                    CALL    IMSAI"VIOB~DISPLAY~STRING
+E25A 01 00 08     1610                    LXI     B,0B00H               ; LENGTH 2K BYTES                                                                                                    .
+E25D 21 00 F8     1620                    LXI     H,IMSAI~VIOB~ROM      ; STARTING ADDRESS
+E260 CD CC E2     1630                    CALL    PROCESS~CHECKSUM
+E263 CD DE E2     1640                    CALL    DISPLAY~CHECKSUM
+E266 01 2A 40     1650                    LXI     B,-0BFD6H             ; EXPECTED VIOB ROM CHECK SUM
+E269 CD 0A E3     1660                    CALL    GRADE~CHECKSUM
+E26C              1670 *
+E26C              1680 *
+E26C              1690 * CHECK SUM TEST ON DISK BOOT ROM
+E26C              1700 *
+E26C              1710 *
+E26C 21 E3 E0     1720 DISK~CHK~SUM      LXI     H,DISK MESS
+E26F CD B6 FF     1730                   CALL    IMSAI~VIOB~DISPLAY~STRING
+E272 21 00 EC     1740                   LXI     H,MICROPOLIS~BOOT~FROM~DISK ; STARTING ADDRESS
+E275 01 00 01     1750                   LXI     B,0100H               ; LENGTH 256 BYTES
+E278 CD CC E2     1760                   CALL    PROCESS~CHECKSUM
+E278 CD DE B2     1770                   CALL    DISPLAY~CHECKSUM
+E27E 01 44 A4     1780                   LXI     B,-0SBBCH             ; EXPECTED DISK CARD ROM CHECK SUM
+E281 CD OA E3     1790                   CALL    GRADE~CHECKSUM
+E284              1800 *
+E284              1810 *                
+E284              1820 * EXERCISE PRINTER PORT CARD
+E284              1830 *
+E284              1840 *
+E284 31 9D 01     1850 SETUP~PRINTER     LXI     SP,BOOTLOADER~STACK
+E287 CD BB E3     1860                   CALL    LDINIT
+E28A 21 FF B0     1870                   LXI     H,PRINT~MESS
+E28D CD B6 FF     1880                   CALL    IMSAI~VIOB~DISPLAY~STRING
+E200 CD BC E1     1890                   CALL    WAIT~5SECONDS
+E203              1900 *   LXI H,TEST~PRINT  ;  PRINT A TEST PAGE
+E203 21 44 E9     1910                   LXI     H,PRINT~TEST~MESS
+E206 CD DB E3     1920                   CALL    PRINTLINEOUT          ; SEND OUT THAT PRINTER COMMAND
+E209 CD BC E1     1030                   CALL    WAIT~SSECONDS
+E29C CD 06 E0     1940                   CALL    NEXT~LINE
+E20F              1950 *
+E20F              1960 *
+E20F              1970 * RUN A PROGRAM OF 56K NO OPERATIONS
+E20F              1980 *
+E20F              1990 *
+E20F 21 6B E1     2000                   LXI     H,RUN~FROM~RAM~TEST
+E2A2 CD B6 FF     2010                   CALL    IMSAT~VIOB~DISPLAY~STRING
+E2A5 21 FF DF     2020                   LXI     H,PROGSTART-1
+E2A8 11 BC E2     2030                   LXI     D,COMEBACK~HERE
+E2AB 72           2040                   MOV      M,D
+E2AC 2B           2050                   DCX      H
+E2AD 73           2060                   MOV      M,E
+E2AE 2B           2070                   DCX      H
+E2AF 36 C3        2080                   MVI      M,OC3H             ; THE JUMPERINSTRUCTION
+E2B1 2B           2090 CLEAR~RAM~LOOP    DCX      H                  ; POINT AT ADDRESS TO CEAR
+E2B2 36 00        2100                   MVI      M,0
+E2B4 7C           2110                   MOV      A,H                ; IS LOOP IN HL=0?
+E2B5 BS           2120                   ORA      L
+E2B6 C2 Bl E2     2130                   JNZ      CLEAR~RAM~LOOP
+E2B9 C3 00 00     2140                   JMP      0000H              ; START AT THE BOTTOM OF RAM
+E2BC 00           2150 COMEBACK~HERE     NOP
+E2BD CD 06 E0     2160                   CALL     NEXTTLINE
+E2C0              2170 *
+E2C0              2180 *
+E2C0              2190 *  TEST THE ABILITY TO BOOT FROM DISK ©
+E2C0              2200 *
+E2C0              2210 *
+E2C0 21 96 E1     2220                   LXI      H, DISK~BOOT~MESS
+E2C3 CD B6 FF     2230                   CALL     IMSAI~VIOB~DISPLAY STRING
+E2C6 CD 06 E0     2240                   CALL     NEXT~LINE
+E2C9 C3 00 EC     2250                   JMP      MICROPOLIS~BOOT~FROM~DISK  ; START FLOPY OPERATION  
+E2CC              2260 *
+E2CC              2270 *
+E2CC              2280 * CHECKSUM CALCULATION AND DISPLAY SUBROUTINES
+E2CC              2290 *
+E2CC              2300 *
+E2CC 11 00 00     2310 PROCESS~CHECKSUM  LXI      D,0               ; RESET SUMMED VALUE
+E2CF 7B           2320 CHECKSUM~LOOP     MOV      A.M               ; GET MEMORY VALUE
+E2D0 83           2330                   ADD      B                 ; EXISTING SUMMATION IN DE
+E2D1 SF           2340                   MOV      E,A
+E2D2 D2 D6 E2     2350                   JNC      NO~CHECKSUM~RIPPLE
+E2D5 14           2360                   INR      D
+E2D6 OB           2370 NOTCHECKSUM~RIPPLE DCX     B
+E2D7 23           2380                   INX      H                 ; POINT AT NEXT ROM LOCATION
+E2D8 78           2390                   MOV      A,B               ; IS LOOP IN BC=07
+E2D9 B1           2400                   ORA      C
+E2DA C2 CF E2     2410                   JNZ      CHECKSUM~LOOP     ; NOPE, KEEP SUMMING
+E2DD C9           2420                   RET
+E2DE              2430 *
+E2DE 7A           2440 DISPLAYTCHECKSUM  MOV      A,D
+E2DF CD 9A FF     2450                   CALL     IMSAI~VIOB~HEX~OUT
+E2E2 7B           2460                   MOV      A,E
+E2E3 C3 9A FF     2470                   JUMP     IMSAI~VIOB~HEX~OUT
+E30A              2720 *
+E30A 7B           2730 GRADE~CHECKSUM    MOV      A,E               ; ADD RESULT MUST BE 0000H
+E30B 81           2740                   ADD      C
+E30C C2 iE E3     2750                   JNZ      CHECKSUM~FAIL     ; IF NOT 0CH, THEN IT FAILED
+E30F D2 13 E3     2760                   JNC      NO~GRADE~RIPPLE
+E312 04           2770                   INR      B
+E313 7A           2780 NO~GRADE~RIPPE    MOV      A,D
+E314 80           2790                   ADD      B                 ; SUM OF HIGH BYTE MUST BE OOH TO PASS
+E315 C2 1E E3     2800                   JNZ      CHECKSUM~FAIL
+E318              2810 *
+E318 21 5D Bil    2820 CHECKSUM~PASS     LXI      H,RESULT PASS
+E31B C3 21 E3     2830                   JMP      COMMON~PF
+E31E 21 64 E1     2840 CHECKSUM~FAIL     LXI      H,RESULT"FAIL
+E321 CD B6 FF     2850 COMMON"PF         CALL     IMSAI~VIOB~DISPLAY~STRING
+E324 CD 06 E0     2860                   CALL     NEXT LINE
+E327 C3 41 E3     2870                   JMP      DISPLAY~TIME~NOW
+E32A              2880 *
+E32A              2890 *************************************************************
+E32A              2000 *                                                           *
+E32A              2010 *   UPDATE VIDE0 DISPLAY WITH HOURS,  MINUTE,  SECONDS      *
+E324              2020 *                                                           *
+E32A              2030 *   PURPOSE       :  TO SHOW TIME WHEN IN DOS & BASIC       *
+E324              2940 *   SPECIFIC USE  :  IMSAI PCS  80/30                       *                                                                                              .
+E32A              2050 *   LAST UPDATE   :    8/24/2020                            *
+E32A              2960 *                                                           *
+E32A              2970 *************************************************************
+E324              2080 *
+B32A              2990 *************************************************************
+E32A              3000 *   SHOW TIME*
+E32A              3010 *************************************************************
+E32A 00           3020 DISPLAY~TIME~PACED NOP
+E32B    E324      3030 SHOWTIME          EQU      DISPLAY~ TIME PACED
+E32B F5           3040                            PUSH     PSW
+E32C C5           3050                            PUSH     B
+E32D 3A 7A 07     3060                            LDA      0778H    ; GET LAST TTME STAMP VALUE
+E330 47           3070                            MOV      B,A      ; PUT IT IN B FOR NOW
+E331 3E 20        3080                            MVI      A,020H   ; READ LOWER SECONDS RTC VALUE
+E333 D3 FE        3000                            OUT      QT~RTIC~ADDR~PORT
+E335 00           3100                            NOP               ; SMALL DELAY FOR SLOW RTC IC
+E336 DB FD        3110                            IN       QT~RTC~DATA~PORT ; READ THE COUNTER
+E338              3120  * ANI  OFH  ;  MASK OFF AND KEEP LOWER BITS
+E338 B8           3130                            CMP      B        ; STILL THE SAME VALUE?
+E339 CA 6F E3     3140                            JZ       DISPLAY~RTC~EXIT
+E33C 32 7A 07     3150                            STA      077AH    ; SAVE FOR UPDATE COMPARING
+E33F C1           3160                            POP      B
+E340 F1           3170                            POP      PSW
+E341              3180 *
+E341 F5           3190 DISPLAY~TIME               PUSH     PSW
+E342      E341    3200 DISPLAY~TIME~NOW EQU   DISPLAY~TIME
+E342 C5           3210                            PUSH     B
+E343 E5           3220                            PUSH     H
+E344 D5           3230                            PUSH     D
+E345 21 48 FO     3240                            LXI      H,QT~RTC~VIDEO~TIME~ADDR~24X80  ; DISPLAY TO VIDE0
+E348              3250 * CONVERT HOURS REGISTERS
+E348 3E 05        3260                            MVI      A,05
+E34A 11 0F 03     3270                            LXI      D,O030FH ; REGISTER MASK
+E34D CD 75 E3     3280                            CALL     DISPLAY~RIC~PAIR ; SHOW HOURS
+E350              3200 *
+E350 3A 48 F0     3300                            LDA      QT~RTC~VIDE0~TIME-ADDR~2480 ; TEST FIRST DIGIT
+E353 FE 30        3310                            CPI      '0'      ; GIVE A BLANK IF ZERO
+E355 C2 5D E3     3320                            JNZ      MINUTES
+E358 3E 20        3330                            MVI      A,' '    ; LEAD ZERO BLANKING
+E35A 32 48 F0     3340                            STA      QI~RTC~VIDE0~TIME~ADDR~2480
+E35D              3350 * CONVERT MINUTES REGISTERS
+E35D 3E 03        3360 MINUTES                    MVI      A,03
+E35F 11 OF 07     2370                            LXI      D,O070FH
+E362 CD 72 E3     3380                            CALL     DISPLAY~RTCPAIR~WITH COLON
+E365              3390 * CONVERT SECONDS REGISTERS
+E365 3E 01        3400                            MVI      A,01
+E367 11 0F 07     3410                            LXI      D,O070FH
+E36A CD 72 E3     3420                            CALL     DISPLAY~RTCPAIR~WITH~COLON
+E36D              3430 *
+E36D Di           3440 DISPLAY~TIME~END           POP      D        ; RESTORE REGISTERS
+E36E El           3450                            POP      H
+E36F C1           3460 DISPLAY~RTC~EXIT           POP      B
+E370 F1           3470                            POP      PSW
+E371 C9           3480                            RET
+E372              3490 *                                                         
+E372              3500 *************************************************************
+E372              3510 *   GET A PAIR OF DIGITS AND CONVERT TO ASCII               *
+E372              3520 *************************************************************
+E372 36 3A        3530 DISPLAY~RTC~PAIR~WITH COLON MVI M,':'
+E374 23           3540                           INX      H
+E375 F5           3550 DISPLAY~RTC~PAIR          PUSH    PSW       ; SAVE A
+E376 CD 7B E3     3560                           CALL    GET~RTC~DATA   ; GET UPPER DIGIT
+E379 F1           3570                           POP      PSW      ; GET LOWER DIGIT
+E37A 3D           3580                           DCR      A
+E37B              3590 *************************************************************
+E37B              3600 *   RETRIEVE DATA NIBBLE FROM MSM5832 CHIP                  *
+E37B              3610 *************************************************************
+E37B F6 20        3620 GET"RIC~DATA              ORI      020H     ; ENABLE READ PIN
+E37D D3 FE        3630                           OUT      QT~RTC~ADDR~PORT
+E37F 00           3640                           NOP
+E380 DB FD        3650                           IN       QT~RTC~DATA~PORT ; GET DATA
+E382 A2           3660                           ANA      D
+E383 53           3670                           MOV      D,E      ; PREP FOR CHECKING LOWER NIBBLE
+E384 F6 30        3680                           ORI      '0'      ; CONVERT TO ASCII
+E386 77           3690                           MOV      M,A
+E387 23           3700                           INX      H
+E388 CO           3710                           RET
+E389              3720 *************************************************************
+E389              3730 *   DELAY                                                   *
+E389              3740 *************************************************************
+E389 AF           3750 SMALL~DELAY               XRA      A
+E38A 3D           3760 RTC~DELAY~LOOP            DCR      A        ;  LOOP TILL A=0
+E38B C8           3770                           RZ
+E38C C3 8A E3     3780                           JMP      RTC~DELAY~LOOP
+E38F              3790 *
+E38F              3800 *************************************************************
+E38F              3810 *                                                           *
+E38F              3820 *   8255 PARALLEL PRINTER PORT CHECK PROGRAM                *
+E38F              3830 *                                                           *
+E38F              3840 *   PURPOSE       : TO MAKE I/0 PORT INTO CENTRONIX PORT    *
+E38F              3850 *   SPECIFIC USE  :  IMSAI PCS 80/30                        *
+E38F              3860 *   LAST UPDATE   : 12/21/2020                              *
+E38F              3870 *                    1/18/2021 SET UP HP PRINT COMMANDS     *
+E38F              3880 *                    8/14/2021 SET UP FOR KODAK  150PLUS    *
+E38F              3890 *                                                           *
+E38F              3900 *  KODAK 150 PLUS IS EXPECTED TO HAVE THESE DIP SETTINGS    *
+E38F              3910 *          SW1 DOWN = CR ONLY                               *
+E38F              3920 *          SW2 DOWN = 11  INCH PAPER                        *
+E38F              3930 *          SW3 DOWN = EPSON FX80 COMMANDS                   *
+E38F              3040 *          SW4 DOWN = IBM CHARACTER SET 1                   *
+E38F              3950 *          SW5 TO SW 8 DOWN =  USA CHARACTER SET            *
+E38F              3960 *          SWO DOWN = 12 CHARACTERS PER INCH                *
+E38F              3970 *         SW10 DOWN = MANUFACTURING USE ONLY IS OFF         *                                                                                                               .
+E38F              3980 *                                                           *                           
+E38F              3990 *************************************************************
+E38F              4000 *
+E38F      0087    4010 ONE~MILLISECOND EQU     0135D               ;  1.0D4MS WITH 4MHZ 8085
+E38F              4020 *
+E38F              4030 *
+E38F              4040 *  SPECIFICALLY FOR THE IO TECHNOLOGY MULTI BOARD
+E38F              4050 *
+E38F              4060 *  LIST OUTPUT CHECKS FOR THE PRINTER ATTENTION
+E38F              4070 *  IF PRINTER ATTENDION IS NEEDED, THEN SET CARRY(C) ON RETURN
+E38F              4080 *                                                              
+E390 CD B3 E3     4090 LDOUT                    CALL     LDATN    ; PRINTER ATTENTION = NO PAPER
+E392 DB           4100                          RC                                ; YES RETURN CARRY SET
+E393 DB 86        4110 LDOUT1                   IN       CENTRONICS~STATUS  ; PRINTER READY?
+E395 E6 01        4120                          ANI      CENTRONICS~BUSY  ; PRINTER READY FOR NEXT BYTE?
+E397 C2 8F E3     4130                          JNZ      LDOUT    ; READY=BUSY=0
+E39A 78           4140                          MOV      A,B
+E398 D3 84        4150 LDOUT2                   OUT      CENTRONICS~DATA
+E30D CD Di E3     4160                          CALL     CENTRONICS~DELAY ; DATA SET UP TIME
+E3A0 3E 00        4170                          MVI      A,0
+E3A2 D3 86        4180                          OUT      CENTRONICS~CIRL  ; STROBE=0
+E3A4 CD D1 E3     4190                          CALL     CENTRONICS~DELAY
+E3A7 3E FO        4200                          MVI      A,OFCH             ; STROBE=1
+E3A9 D3 86        4210                          OUT      CENTRONICS~CTRL
+E2AB 01 1C 02     4220                          IXI      B,4*ONE~MILLISECOND
+E3AE C3 D4 E3     4230                          JMP      PRINTER~DELAY~LOOP  ; DATA HOLD TIME
+E3B1 00           4240 LDOUT3                   NOP
+E3B2 C9           4250                          RET
+E3B3              4260 *
+E3B3              4270 *  PRINTER ATTENTION CHECK
+E3B3              4280 *  CARRY SET = ATTENTION
+E3B3              4200 *
+E3B3 00           4300 LDATN                    NOP               ; NOP TO ACTIVATE THIS ROUTINE
+E3B4 DB 86        4310                          IN       CENTRONICS~STATUS
+E3B6       0004   4320 CENTRONICS~PROBLEM EQU CENTRONICS~PAPER~EMPTY
+E3B6 E6 04        4330                          ANI      CENTRONICS~PROBLEM  ; ATTENTION NO PRINTER PAPER
+E3B8 C8           4340                          RZ                ; OK
+E3B9 37           4350                          STC               ; SET CARRY FOR ATTN
+E3BA C9           4360                          RET               ;  DONE
+E3BB              4370 *
+E3BB              4380 * INTTTALIZE THE LIST DEVICE INTERFACE 8255 PARALLEL PORTS
+E3BB              4390 *
+ESBB 3E 83        4400 LDINIT                   MVI      A,10000011B ;  ONLY PORT C(0:3) ARE INPUTS
+ESBD     E3BB     4410 INIT~CENTRONICS~PORT EQU LDINIT
+E3BD D3 87        4420                          OUT      IOTECH~U16~CTRL ; SET UP THE 8255 IO PORT IC
+E3BF 3E FO        4430                          MVI      A,0F0H    ; SET STROBE=1
+E3C1 D3 86        4440                          OUT      CENTRONICS~CTRL
+E3C3 D3 84        4450                          OUT      CENTRONICS~DATA
+E3C5 21 ED E3     4460                          LXI      H,PRINTER~SETUP ; RESET AND CONFIGURE THE PRINTER                                                                                        -
+E3C8 CD DB B3     4470                          CALL     PRINTLINEOUT
+E3CB              4480 *  CALL DOUBLE~PRTR~DELAY
+E3CB 01 FF FF     4490 DOUBLE~PRTR~DELAY        LXI      B,0FFFFH  ; DELAY BEFORE SENDING PRINT DATA
+E3CE C3 D4 E3     4500                          JMP      PRINTER~DELAY~LOOP
+E3D1              4510 *
+E3D1 01 43 00     4520 CENTRONICS~DELAY         LXI      B,ONE~MILLISECOND/4  ; 250US STROBE DURATION
+E3D4 0B           4530 PRINTER~DELAYLOOP        DCX B
+E3D5 78           4540                          MOV      A,B      ;  CONTINUE DELAY?
+E3D6 B1           4550                          ORA      C
+E3D7 C8           4560                          RZ
+E3D8 C3 D4 E3     4570                          JMP      PRINTER~DELAY~LOOP
+E3DB              4580 *************************************************************
+E3DB              4590 * SEND LINE TO PRINTER DEVICE                               *
+E3DB              4600 *************************************************************
+E3DB 7E           4610 PRINTLINEOUT             MOV      A,M        ;  GET BYTE TO TRANSMIT ROM (HL)
+E3DC E6 7F        4620                          ANI      07FH       ;  STRIP TO ONLY ASCII 7BITS
+E3DE 47           4630                          MOV      B,A
+E3DF CD 8F E3     4640                          CALL     LDOUT      ;  SEND REG.B TO PRINTER
+E3E2 7B           4650                          MOV      A,M        ;  CHECK BIT? OF BYTE SET
+E3E3 E6 80        4660                          ANI      080H       ;  IS MSB SET?
+E3E5 CO           4670                          RNZ                 ; YES, THEN STRING IS DNE
+E3E6 23           4680                          INX      H          ; POINT AT NEXT BYTE
+E3E7 C3 DB E3     4690                          JMP      PRINTLINEOUT
+E3BA              4700 *************************************************************
+E3EA              4710 * MESSAGE TABLE                                             *
+E3EA              4720 * COMMANDS ARE FROM KODAK DICONIX 150 PLUS REFERENCE MANUAL *
+E3EA              4730 *************************************************************
+E3EA 1B 74        4740 TEST~PRINT        DB     027,116            ; PRINT A TEST PAGE
+E3EC A0           4750                   DTH    ' ' 
+E3ED 1B 40        4760 PRINTER~SETUP     DB     027,64             ; RESET THE PRINTER
+E3EF 1B 49 07     4770                   DB     027,73,7           ; NLQ FONT
+E3F2 18           4780                   DB     024                ; CLEAR PRINT BUFFER
+E3F3 80           4790                   DB     080H
+E3F4              4800 *
+E3F4              4810 *  END
+E3F4              4820 *
+
+ERRORS THIS ASSEMBLY   0000
+
