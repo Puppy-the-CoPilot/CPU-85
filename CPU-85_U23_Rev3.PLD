@@ -1,0 +1,100 @@
+Name     CPU-85_U23rev3 ;
+PartNo   U23 ;
+Date     9/17/2026 ;
+Revision 3 ;
+Designer Greg Bober ;
+Company  Michigan Electronic Applications LLC ;
+Assembly for CPU85 U23;
+Location  ;
+Device    g16v8ma ;
+
+
+/*
+* Change History
+* 7/16/2026 First Draft
+* 9/13/2026 started validating U23 decoding
+* 9/14/2026 5 of 8 signals appear to decoding correctly sINTA, sHLTA, INP, OUTP
+* 9/15/2026 copied over the work into MicroChip WINCUPL2 new editor and compiler system;
+*           I get error code 1066, replaced all "inverted" with "invert" in case some labels are too long
+*           MicroChip WINCUPL2 gives error code 1066 (use of ; semi colon is not the issue)
+*           old WINCUPL 5.30.4 is OK with the same file
+* 9/15/2026 new boolean equations from a MCS8080A and made a new 8080 vs 8085 mapping table
+* 9/16/2026 validated this with JADE Probe Board photo captures
+* 9/17/2026 new equation for MEMR only to capture MEMR output during HALT state
+*/
+
+
+/*
+ * devices:  g16v8 g16v8a  ATF16V8B  ATF16V8C I also have 16V8D verion, new MicroChip compiler uses g16v8s
+ */
+
+
+/*
+ * Logic:  examples of simple gates expressed in CUPL
+ 
+inva = !a;              inverters
+invb = !b;
+and  = a & b;           and gate 
+nand = !(a & b);        nand gate
+or   = a # b;           or gate
+nor  = !(a # b);        nor gate 
+xor  = a $ b;           exclusive or gate
+xnor = !(a $ b);        exclusive nor gate
+ */
+
+
+/*
+ * INPUTS:  define to build simple gates from
+ */
+PIN   1  = S0        ;   
+PIN   2  = S1        ; 
+PIN   3  = IOM       ;         
+PIN   4  = invertINTA  ;
+PIN   5  = invertRESET ;
+PIN   6  = invertWR  ;
+PIN   7  = invertRD  ;
+PIN   8  = HLDA      ;
+PIN   9  = sINTA_feedback  ;
+PIN  11  = ZERO      ;
+
+
+/*
+ * OUTPUTS: define the outputs
+*/
+PIN  19  = sINTA     ; 
+PIN  18  = sINP      ;
+PIN  17  = sOUT      ;
+PIN  16  = sHLTA     ; 
+PIN  15  = sM1       ;
+PIN  14  = sMEMR     ;
+PIN  13  = invertSWO ;
+PIN  12  = sBUSIDLE  ;
+
+
+/*
+ */
+sINTA = S0 & S1 & IOM & invertWR & invertRD & !invertINTA ;
+invertSWO = !( S0 & !S1 & !invertWR & invertRD ) ;
+sHLTA = !S0 & !S1 & IOM & invertWR & invertRD & invertINTA ;
+sOUT = S0 & !S1 & IOM & !invertWR & invertRD ;
+sM1 = S0 & S1 & invertWR & invertINTA ;
+sINP = !S0 & S1 & !invertRD & IOM & invertWR ;
+sBUSIDLE = S0 & S1 & IOM & invertWR & invertRD & invertINTA ;
+sMEMR = ( S1 & invertWR & !IOM & !invertRD & invertINTA) # ( !S0 & !S1 & IOM & invertWR & invertRD & invertINTA ) ;
+
+/* Rev2 
+this equation did not capture MEMR during HALT state
+sMEMR = S1 & invertWR & !IOM & !invertRD 
+ */
+
+/* Rev3
+compiler says I can't use SHLTA in this boolean equation, but the rest is OK
+sMEMR = ZERO # sINP # sOUT # !invertSWO # sINTA_feedback # sHLTA 
+
+compiler accepted subsituting the aHLTA equation for the sHLTA term
+sMEMR = ZERO # sINP # sOUT # !invertSWO # sINTA_feedback # (!S0 & !S1 & IOM & invertWR & invertRD & invertINTA) ;
+
+shorter queation this would not catpure MEMR during HALT or no improvement
+sMEMR = ZERO # sINP # sOUT # !invertSWO # sINTA_feedback 
+ */
+
